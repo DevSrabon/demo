@@ -1,0 +1,31 @@
+/* Footer Small Screens Styles */
+.bg_footer_sm {
+  background-color: #000;
+  width: 100%;
+  color: #fff;
+  padding: 1rem 0;
+}
+.bg_footer_sm .container-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-transform: uppercase;
+}
+.current-year {
+  font-weight: bold;
+}
+
+.company-link {
+  text-decoration: none;
+}
+
+.company-name {
+  text-transform: uppercase;
+  transition: transform 0.3s ease-in-out;
+}
+
+.company-name:hover {
+  font-weight: bold;
+  transform: scale(1.9);
+}
