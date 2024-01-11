@@ -1,24 +1,32 @@
+import { Button, InputLabel, TextField } from '@mui/material';
 import Konva from 'konva';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SketchPicker } from 'react-color';
+import { BiDownload, BiUpload } from 'react-icons/bi';
+import { Image, Layer, Stage, Text, Transformer } from 'react-konva';
 import useImage from 'use-image';
 import './App.css';
 import Footer from './Components/Footer/Footer';
 import Navbar from './Components/NavigationBar/Navbar';
-
+import tshirt from './assets/tshirt.webp';
+import useWidth from './hooks/useWidth';
 const App = () => {
-  const imageRef = useRef();
-  const imageRef2 = useRef();
   const stageRef = useRef();
-  const transformerRef = useRef();
-  const [shirtColor, setShirtColor] = useState({ r: 208, g: 2, b: 27 });
+  const imageRef = useRef();
+  const textRef = useRef();
+  const imageTransformerRef = useRef();
+  const textTransformerRef = useRef();
+  const [shirtColor, setShirtColor] = useState({});
   const [imageURL, setImageURL] = useState(null);
   const [imageLayerUrl, setImageLayerUrl] = useState(null);
-
-  const [textColor, setTextColor] = useState({ r: 144, g: 144, b: 144 });
-
+  const [textColor, setTextColor] = useState({ r: 144, g: 144, b: 101 });
   const [text, setText] = useState('');
+  const [image] = useImage(imageURL);
+  const [layerImage] = useImage(imageLayerUrl);
+  const [width] = useWidth();
+  const layerImageRef = useRef();
 
+  const layerTransformerRef = useRef();
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -29,8 +37,7 @@ const App = () => {
       reader.readAsDataURL(file);
     }
   };
-
-  const handleImageChange2 = (e) => {
+  const handleImage2Change = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -41,98 +48,19 @@ const App = () => {
     }
   };
 
-  const [image] = useImage(imageURL);
-  const [imageLayer] = useImage(imageLayerUrl);
-
-  useEffect(() => {
-    if (image) {
-      const uploadedImage = new Konva.Image({
-        image: image,
-        x: 0,
-        y: 0,
-        draggable: true,
-      });
-      const stage = new Konva.Stage({
-        container: 'container',
-        width: 500,
-        height: window.innerHeight,
-      });
-
-      const layer = new Konva.Layer();
-
-      uploadedImage.cache();
-      uploadedImage.filters([Konva.Filters.RGB]);
-      layer.add(uploadedImage);
-
-      // Add text box
-      const textNode = new Konva.Text({
-        text,
-        x: 200,
-        y: 200,
-        fontSize: 20,
-        fill: `rgb(${textColor.r},${textColor.g},${textColor.b})`,
-        draggable: true,
-      });
-
-      layer.add(textNode);
-
-      stage.add(layer);
-
-      stageRef.current = stage;
-      imageRef.current = uploadedImage;
-    }
-    if (imageLayerUrl) {
-      const uploadedImageLayer = new Konva.Image({
-        image: imageLayer,
-        x: 0,
-        y: 0,
-        draggable: true,
-      });
-      const layer2 = new Konva.Layer();
-      uploadedImageLayer.width(100);
-      uploadedImageLayer.height(100);
-      uploadedImageLayer.cache();
-
-      layer2.add(uploadedImageLayer);
-
-      stageRef.current.add(layer2);
-
-      imageRef2.current = uploadedImageLayer;
-
-      const transformer2 = new Konva.Transformer();
-      const handleDoubleClick = () => {
-        layer2.add(transformer2);
-        transformerRef.current = transformer2;
-        transformer2.attachTo(uploadedImageLayer);
-      };
-      const handleOutsideClick = (e) => {
-        const container = document.getElementById('container');
-        if (!container.contains(e.target)) {
-          // Clicked outside the container
-          if (transformerRef.current) {
-            transformerRef.current.detach();
-            transformerRef.current.destroy();
-            transformerRef.current = null;
-          }
-        }
-      };
-
-      window.addEventListener('click', handleOutsideClick);
-      window.addEventListener('dblclick', handleDoubleClick);
-      return () => {
-        window.removeEventListener('click', handleOutsideClick);
-        window.removeEventListener('dblclick', handleDoubleClick);
-      };
-    }
-  }, [imageURL, image, text, textColor, imageLayer, imageLayerUrl]);
-
   const handleColorChange = (color, property) => {
     switch (property) {
       case 'shirt':
         setShirtColor(color.rgb);
-        imageRef.current.red(color.rgb.r);
-        imageRef.current.green(color.rgb.g);
-        imageRef.current.blue(color.rgb.b);
+        if (imageRef.current) {
+          // Update image color properties
+          imageRef.current.cache();
+          imageRef.current.filters([Konva.Filters.RGB]);
+          imageRef.current.red(color.rgb.r);
+          imageRef.current.green(color.rgb.g);
+          imageRef.current.blue(color.rgb.b);
+          imageRef.current.draw();
+        }
         break;
       case 'text':
         setTextColor(color.rgb);
@@ -140,8 +68,6 @@ const App = () => {
       default:
         break;
     }
-
-    stageRef.current.batchDraw();
   };
 
   const handleDownload = () => {
@@ -152,72 +78,201 @@ const App = () => {
     a.click();
   };
 
+  const handleImageClick = () => {
+    if (imageTransformerRef.current) {
+      imageTransformerRef.current.nodes([imageRef.current]);
+      imageTransformerRef.current.show();
+      stageRef.current.batchDraw();
+    }
+  };
+
+  const handleTextClick = () => {
+    if (textTransformerRef.current) {
+      textTransformerRef.current.nodes([textRef.current]);
+      textTransformerRef.current.show();
+      stageRef.current.batchDraw();
+    }
+  };
+  const handleLayerImageClick = () => {
+    if (layerTransformerRef.current) {
+      layerTransformerRef.current.nodes([layerImageRef.current]);
+      layerTransformerRef.current.show();
+      stageRef.current.batchDraw();
+    }
+  };
+  useEffect(() => {
+    setImageURL(tshirt);
+  }, []);
   return (
     <div className="App">
       <Navbar />
       <div className="container_main">
-        <div style={{ height: '500px', width: '500px' }} id="container"></div>
-        <div id="controls">
-          <div>
-            <label htmlFor="imageUpload">Upload Image:</label>
-            <input
-              className="inputFile"
-              type="file"
-              id="imageUpload"
-              accept="image/*"
-              onChange={handleImageChange}
-            />
-          </div>
+        <div id="container">
           {imageURL && (
-            <>
-              <div>
-                <label htmlFor="colorPickerShirt">Shirt Color:</label>
-                <SketchPicker
-                  id="colorPickerShirt"
-                  color={shirtColor}
-                  onChangeComplete={(color) =>
-                    handleColorChange(color, 'shirt')
-                  }
+            <Stage
+              container="container"
+              width={width > 600 ? 600 : width * 0.9}
+              height={500}
+              onClick={() => {
+                if (imageTransformerRef.current) {
+                  imageTransformerRef.current.hide();
+                }
+                if (textTransformerRef.current) {
+                  textTransformerRef.current.hide();
+                }
+                if (layerTransformerRef.current) {
+                  layerTransformerRef.current.hide();
+                }
+                stageRef.current.batchDraw();
+              }}
+            >
+              <Layer>
+                {image && (
+                  <>
+                    <Image
+                      image={image}
+                      x={0}
+                      y={0}
+                      draggable
+                      onClick={handleImageClick}
+                      ref={imageRef}
+                    />
+                    <Transformer ref={imageTransformerRef} />
+                  </>
+                )}
+                {text && (
+                  <>
+                    <Text
+                      text={text}
+                      x={200}
+                      y={200}
+                      fontSize={20}
+                      fill={`rgb(${textColor.r},${textColor.g},${textColor.b})`}
+                      draggable
+                      onClick={handleTextClick}
+                      ref={textRef}
+                    />
+                    <Transformer ref={textTransformerRef} />
+                  </>
+                )}
+              </Layer>
+              {layerImage && (
+                <Layer>
+                  <Image
+                    image={layerImage}
+                    x={0}
+                    y={0}
+                    draggable
+                    width={200}
+                    height={200}
+                    onClick={handleLayerImageClick}
+                    ref={layerImageRef}
+                  />
+                  <Transformer
+                    ref={layerTransformerRef}
+                    enabledAnchors={[]}
+                    enabled={false}
+                  />
+                </Layer>
+              )}
+            </Stage>
+          )}
+        </div>
+        <div id="container2">
+          <div id="controls">
+            <div>
+              <InputLabel htmlFor="imageUpload">Image:</InputLabel>
+              <Button
+                component="label"
+                variant="outlined"
+                startIcon={<BiUpload />}
+                sx={{ width: '100%' }}
+              >
+                Upload New Image
+                <input
+                  type="file"
+                  hidden
+                  id="imageUpload"
+                  accept="image/*"
+                  onChange={(e) => handleImageChange(e, setImageURL)}
                 />
-              </div>
-              {text && (
+              </Button>
+            </div>
+            {imageURL && (
+              <>
                 <div>
-                  <label htmlFor="colorPickerText">Text Color:</label>
+                  <InputLabel htmlFor="colorPickerShirt">
+                    Change Image Color:
+                  </InputLabel>
                   <SketchPicker
-                    id="colorPickerText"
-                    color={textColor}
+                    id="colorPickerShirt"
+                    color={shirtColor}
                     onChangeComplete={(color) =>
-                      handleColorChange(color, 'text')
+                      handleColorChange(color, 'shirt')
                     }
                   />
                 </div>
-              )}
-
+                <div>
+                  <InputLabel htmlFor="outlined-basic">Text:</InputLabel>
+                  <TextField
+                    variant="outlined"
+                    className="inputFile"
+                    label="Enter text here"
+                    type="text"
+                    id="outlined-basic"
+                    sx={{ width: '100%' }}
+                    multiline
+                    rows={3}
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                  />
+                </div>
+                {text && (
+                  <div>
+                    <label htmlFor="colorPickerText">Text Color:</label>
+                    <SketchPicker
+                      id="colorPickerText"
+                      color={textColor}
+                      onChangeComplete={(color) =>
+                        handleColorChange(color, 'text')
+                      }
+                    />
+                  </div>
+                )}
+              </>
+            )}
+            {imageURL && (
               <div>
-                <label htmlFor="textBox">Text:</label>
-                <input
-                  className="inputFile"
-                  type="text"
-                  id="textBox"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                />
+                <InputLabel htmlFor="imageUpload2">Add Your Logo:</InputLabel>
+                <Button
+                  component="label"
+                  variant="outlined"
+                  sx={{ width: '100%' }}
+                  size="small"
+                  startIcon={<BiUpload />}
+                >
+                  Upload Image
+                  <input
+                    type="file"
+                    id="imageUpload2"
+                    hidden
+                    accept="image/*"
+                    onChange={(e) => handleImage2Change(e)}
+                  />
+                </Button>
               </div>
-            </>
-          )}
-          {imageURL && (
-            <div>
-              <label htmlFor="imageUpload2">Edited Image:</label>
-              <input
-                className="inputFile"
-                type="file"
-                id="imageUpload2"
-                accept="image/*"
-                onChange={handleImageChange2}
-              />
-            </div>
-          )}
-          {imageURL && <button onClick={handleDownload}>Download</button>}
+            )}
+            {imageURL && (
+              <Button
+                onClick={handleDownload}
+                variant="contained"
+                size="large"
+                startIcon={<BiDownload />}
+              >
+                Download
+              </Button>
+            )}
+          </div>
         </div>
       </div>
       <Footer />
